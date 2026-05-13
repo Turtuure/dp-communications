@@ -23,6 +23,7 @@ use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettingsReposi
 use DaemsModule\Communications\Domain\Template\MailTemplateRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\NewsletterDraftRepositoryInterface;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 use DaemsModule\Communications\Infrastructure\Audience\SqlAudienceResolver;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
 use DaemsModule\Communications\Infrastructure\Mailer\SymfonyMailerAdapter;
@@ -177,6 +178,16 @@ return static function (Container $container): void {
             $c->make(ListOutboxRows::class),
             $c->make(RetryOutboxRow::class),
             $c->make(MailOutboxRepositoryInterface::class),
+        ),
+    );
+
+    // Backstage settings (Wave C8) — GET / PUT / POST smtp-test
+    $container->bind(
+        SettingsController::class,
+        static fn(Container $c) => new SettingsController(
+            $c->make(GetCommunicationSettings::class),
+            $c->make(SaveCommunicationSettings::class),
+            $c->make(SendSmtpTestEmail::class),
         ),
     );
 };

@@ -9,6 +9,7 @@ use Daems\Infrastructure\Framework\Http\Request;
 use Daems\Infrastructure\Framework\Http\Response;
 use Daems\Infrastructure\Framework\Http\Router;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 
 // HTTP route registration for the communications module.
 // Loaded by the platform's ModuleRegistry::registerRoutes() at boot.
@@ -28,5 +29,18 @@ return static function (Router $router, Container $container): void {
 
     $router->post('/api/v1/backstage/communications/outbox/{id}/retry', static function (Request $req, array $params) use ($container): Response {
         return $container->make(OutboxController::class)->retry($req, $params);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    // Backstage — communication settings (admin / GSA)
+    $router->get('/api/v1/backstage/communications/settings', static function (Request $req) use ($container): Response {
+        return $container->make(SettingsController::class)->show($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->put('/api/v1/backstage/communications/settings', static function (Request $req) use ($container): Response {
+        return $container->make(SettingsController::class)->update($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->post('/api/v1/backstage/communications/settings/smtp-test', static function (Request $req) use ($container): Response {
+        return $container->make(SettingsController::class)->testSmtp($req);
     }, [TenantContextMiddleware::class, AuthMiddleware::class]);
 };
