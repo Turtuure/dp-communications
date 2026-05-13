@@ -10,14 +10,8 @@ use Daems\Infrastructure\Framework\Database\Connection;
 use DaemsModule\Communications\Domain\Audience\AudienceFilter;
 use DaemsModule\Communications\Domain\Audience\JoinedWithinPeriod;
 use DaemsModule\Communications\Domain\Mail\NewsletterId;
-use DaemsModule\Communications\Domain\Template\Block\ButtonBlock;
-use DaemsModule\Communications\Domain\Template\Block\DividerBlock;
-use DaemsModule\Communications\Domain\Template\Block\EventCardBlock;
-use DaemsModule\Communications\Domain\Template\Block\HeadingBlock;
-use DaemsModule\Communications\Domain\Template\Block\ImageBlock;
+use DaemsModule\Communications\Domain\Template\Block\BlockSerializer;
 use DaemsModule\Communications\Domain\Template\Block\NewsletterBlock;
-use DaemsModule\Communications\Domain\Template\Block\ParagraphBlock;
-use DaemsModule\Communications\Domain\Template\Block\TwoColumnsBlock;
 use DaemsModule\Communications\Domain\Template\NewsletterDraft;
 use DaemsModule\Communications\Domain\Template\NewsletterDraftRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\NewsletterStatus;
@@ -82,6 +76,14 @@ final class SqlNewsletterDraftRepository implements NewsletterDraftRepositoryInt
         return $out;
     }
 
+    public function delete(NewsletterId $id): void
+    {
+        $this->db->execute(
+            'DELETE FROM newsletter_drafts WHERE id = ?',
+            [$id->value()],
+        );
+    }
+
     /** @param array<string, mixed> $row */
     private function hydrate(array $row): NewsletterDraft
     {
@@ -119,7 +121,7 @@ final class SqlNewsletterDraftRepository implements NewsletterDraftRepositoryInt
                 foreach ($blocks as $blockArr) {
                     if (is_array($blockArr)) {
                         /** @var array<string, mixed> $blockArr */
-                        $list[] = $this->blockFromArray($blockArr);
+                        $list[] = BlockSerializer::fromArray($blockArr);
                     }
                 }
                 $blocksByLocale[$loc] = $list;
@@ -153,118 +155,11 @@ final class SqlNewsletterDraftRepository implements NewsletterDraftRepositoryInt
         foreach ($blocksByLocale as $locale => $blocks) {
             $arr = [];
             foreach ($blocks as $block) {
-                $arr[] = $this->blockToArray($block);
+                $arr[] = BlockSerializer::toArray($block);
             }
             $out[$locale] = $arr;
         }
         return $out;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function blockToArray(NewsletterBlock $block): array
-    {
-        if ($block instanceof TwoColumnsBlock) {
-            $left  = [];
-            foreach ($block->left as $b) {
-                if ($b instanceof NewsletterBlock) {
-                    $left[] = $this->blockToArray($b);
-                }
-            }
-            $right = [];
-            foreach ($block->right as $b) {
-                if ($b instanceof NewsletterBlock) {
-                    $right[] = $this->blockToArray($b);
-                }
-            }
-            return ['type' => 'two_columns', 'left' => $left, 'right' => $right];
-        }
-        if ($block instanceof HeadingBlock) {
-            return ['type' => 'heading', 'level' => $block->level, 'text' => $block->text];
-        }
-        if ($block instanceof ParagraphBlock) {
-            return ['type' => 'paragraph', 'markdown' => $block->markdown];
-        }
-        if ($block instanceof ImageBlock) {
-            return ['type' => 'image', 'url' => $block->url, 'alt' => $block->alt, 'caption' => $block->caption];
-        }
-        if ($block instanceof ButtonBlock) {
-            return ['type' => 'button', 'text' => $block->text, 'url' => $block->url];
-        }
-        if ($block instanceof DividerBlock) {
-            return ['type' => 'divider'];
-        }
-        if ($block instanceof EventCardBlock) {
-            return ['type' => 'event_card', 'eventId' => $block->eventId, 'title' => $block->title, 'whenLabel' => $block->whenLabel];
-        }
-        throw new \DomainException('Unknown newsletter block type: ' . $block::class);
-    }
-
-    /**
-     * @param array<string, mixed> $arr
-     */
-    private function blockFromArray(array $arr): NewsletterBlock
-    {
-        $type = $arr['type'] ?? null;
-        if (!is_string($type)) {
-            throw new \DomainException('Newsletter block missing type');
-        }
-
-        switch ($type) {
-            case 'heading':
-                $level = isset($arr['level']) && is_int($arr['level']) ? $arr['level'] : 1;
-                $text  = isset($arr['text'])  && is_string($arr['text']) ? $arr['text']  : '';
-                return new HeadingBlock($level, $text);
-
-            case 'paragraph':
-                $md = isset($arr['markdown']) && is_string($arr['markdown']) ? $arr['markdown'] : '';
-                return new ParagraphBlock($md);
-
-            case 'image':
-                $url     = isset($arr['url'])     && is_string($arr['url'])     ? $arr['url']     : '';
-                $alt     = isset($arr['alt'])     && is_string($arr['alt'])     ? $arr['alt']     : '';
-                $caption = isset($arr['caption']) && is_string($arr['caption']) ? $arr['caption'] : null;
-                return new ImageBlock($url, $alt, $caption);
-
-            case 'button':
-                $text = isset($arr['text']) && is_string($arr['text']) ? $arr['text'] : '';
-                $url  = isset($arr['url'])  && is_string($arr['url'])  ? $arr['url']  : '';
-                return new ButtonBlock($text, $url);
-
-            case 'divider':
-                return new DividerBlock();
-
-            case 'event_card':
-                $eventId   = isset($arr['eventId'])   && is_string($arr['eventId'])   ? $arr['eventId']   : '';
-                $title     = isset($arr['title'])     && is_string($arr['title'])     ? $arr['title']     : null;
-                $whenLabel = isset($arr['whenLabel']) && is_string($arr['whenLabel']) ? $arr['whenLabel'] : null;
-                return new EventCardBlock($eventId, $title, $whenLabel);
-
-            case 'two_columns':
-                $left  = [];
-                $right = [];
-                if (isset($arr['left']) && is_array($arr['left'])) {
-                    foreach ($arr['left'] as $child) {
-                        if (is_array($child)) {
-                            /** @var array<string, mixed> $child */
-                            $left[] = $this->blockFromArray($child);
-                        }
-                    }
-                }
-                if (isset($arr['right']) && is_array($arr['right'])) {
-                    foreach ($arr['right'] as $child) {
-                        if (is_array($child)) {
-                            /** @var array<string, mixed> $child */
-                            $right[] = $this->blockFromArray($child);
-                        }
-                    }
-                }
-                return new TwoColumnsBlock($left, $right);
-
-            default:
-                throw new \DomainException('Unknown newsletter block type: ' . $type);
-        }
     }
 
     /**

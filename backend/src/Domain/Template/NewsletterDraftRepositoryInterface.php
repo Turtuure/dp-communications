@@ -17,4 +17,6 @@ interface NewsletterDraftRepositoryInterface
      * @return list<NewsletterDraft>
      */
     public function listForTenant(TenantId $tenantId): array;
+
+    public function delete(NewsletterId $id): void;
 }

@@ -6,16 +6,21 @@ use Daems\Domain\Shared\Clock;
 use Daems\Infrastructure\Framework\Container\Container;
 use DaemsModule\Communications\Application\ComposeAndPreviewMessage\ComposeAndPreviewMessage;
 use DaemsModule\Communications\Application\CreateMeetingFromComposer\CreateMeetingFromComposer;
+use DaemsModule\Communications\Application\CreateNewsletterDraft\CreateNewsletterDraft;
+use DaemsModule\Communications\Application\DeleteNewsletterDraft\DeleteNewsletterDraft;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
 use DaemsModule\Communications\Application\GetMeetingForReInvite\GetMeetingForReInvite;
 use DaemsModule\Communications\Application\GetTemplateOverrides\GetTemplateOverrides;
 use DaemsModule\Communications\Application\GetUserCommunicationPreferences\GetUserCommunicationPreferences;
+use DaemsModule\Communications\Application\ListNewsletters\ListNewsletters;
 use DaemsModule\Communications\Application\ListOutboxRows\ListOutboxRows;
 use DaemsModule\Communications\Application\RetryOutboxRow\RetryOutboxRow;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
 use DaemsModule\Communications\Application\SaveTemplateOverrides\SaveTemplateOverrides;
 use DaemsModule\Communications\Application\SendComposedMessage\SendComposedMessage;
+use DaemsModule\Communications\Application\SendNewsletter\SendNewsletter;
 use DaemsModule\Communications\Application\SendSmtpTestEmail\SendSmtpTestEmail;
+use DaemsModule\Communications\Application\UpdateNewsletterDraft\UpdateNewsletterDraft;
 use DaemsModule\Communications\Application\UpdateUserCommunicationPreference\UpdateUserCommunicationPreference;
 use DaemsModule\Communications\Domain\Audience\AudienceResolverInterface;
 use DaemsModule\Communications\Domain\Mail\MailerInterface;
@@ -25,6 +30,7 @@ use DaemsModule\Communications\Domain\Meeting\MeetingRepositoryInterface;
 use DaemsModule\Communications\Domain\Preference\UserCommunicationPreferenceRepositoryInterface;
 use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettingsRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\MailTemplateRepositoryInterface;
+use DaemsModule\Communications\Domain\Template\NewsletterDraftRepositoryInterface;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\ComposerController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
@@ -41,6 +47,7 @@ use DaemsModule\Communications\Tests\Support\InMemoryMailOutboxRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryMailSuppressionRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryMailTemplateRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryMeetingRepository;
+use DaemsModule\Communications\Tests\Support\InMemoryNewsletterDraftRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryTenantCommunicationSettingsRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryUserCommunicationPreferenceRepository;
 
@@ -83,6 +90,10 @@ return static function (Container $container): void {
     $container->singleton(
         MeetingRepositoryInterface::class,
         static fn(): MeetingRepositoryInterface => new InMemoryMeetingRepository(),
+    );
+    $container->singleton(
+        NewsletterDraftRepositoryInterface::class,
+        static fn(): NewsletterDraftRepositoryInterface => new InMemoryNewsletterDraftRepository(),
     );
     $container->singleton(
         AudienceResolverInterface::class,
@@ -205,6 +216,51 @@ return static function (Container $container): void {
         static fn(Container $c) => new TemplatesController(
             $c->make(GetTemplateOverrides::class),
             $c->make(SaveTemplateOverrides::class),
+        ),
+    );
+
+    // ---------------------------------------------------------------------
+    // Newsletter CRUD (Wave E Tasks E2 + E3) — same wiring as prod against
+    // the InMemory newsletter-draft repo. NewsletterBlockRenderer is
+    // instantiated per-call inside SendNewsletter (brand-color is per-tenant),
+    // so we do NOT register it as a singleton here.
+    // ---------------------------------------------------------------------
+    $container->bind(
+        CreateNewsletterDraft::class,
+        static fn(Container $c) => new CreateNewsletterDraft(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+            $c->make(Clock::class),
+        ),
+    );
+    $container->bind(
+        UpdateNewsletterDraft::class,
+        static fn(Container $c) => new UpdateNewsletterDraft(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        DeleteNewsletterDraft::class,
+        static fn(Container $c) => new DeleteNewsletterDraft(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        ListNewsletters::class,
+        static fn(Container $c) => new ListNewsletters(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        SendNewsletter::class,
+        static fn(Container $c) => new SendNewsletter(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+            $c->make(AudienceResolverInterface::class),
+            $c->make(TenantCommunicationSettingsRepositoryInterface::class),
+            $c->make(MailOutboxRepositoryInterface::class),
+            $c->make(MailSuppressionRepositoryInterface::class),
+            $c->make(EmailHtmlRenderer::class),
+            $c->make(MarkdownRenderer::class),
+            $c->make(Clock::class),
         ),
     );
 };

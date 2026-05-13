@@ -7,18 +7,23 @@ use Daems\Infrastructure\Framework\Container\Container;
 use Daems\Infrastructure\Framework\Database\Connection;
 use DaemsModule\Communications\Application\ComposeAndPreviewMessage\ComposeAndPreviewMessage;
 use DaemsModule\Communications\Application\CreateMeetingFromComposer\CreateMeetingFromComposer;
+use DaemsModule\Communications\Application\CreateNewsletterDraft\CreateNewsletterDraft;
+use DaemsModule\Communications\Application\DeleteNewsletterDraft\DeleteNewsletterDraft;
 use DaemsModule\Communications\Application\DrainMailOutbox\DrainMailOutbox;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
 use DaemsModule\Communications\Application\GetMeetingForReInvite\GetMeetingForReInvite;
 use DaemsModule\Communications\Application\GetTemplateOverrides\GetTemplateOverrides;
 use DaemsModule\Communications\Application\GetUserCommunicationPreferences\GetUserCommunicationPreferences;
+use DaemsModule\Communications\Application\ListNewsletters\ListNewsletters;
 use DaemsModule\Communications\Application\ListOutboxRows\ListOutboxRows;
 use DaemsModule\Communications\Application\MarkSuppressedRecipientsInPending\MarkSuppressedRecipientsInPending;
 use DaemsModule\Communications\Application\RetryOutboxRow\RetryOutboxRow;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
 use DaemsModule\Communications\Application\SaveTemplateOverrides\SaveTemplateOverrides;
 use DaemsModule\Communications\Application\SendComposedMessage\SendComposedMessage;
+use DaemsModule\Communications\Application\SendNewsletter\SendNewsletter;
 use DaemsModule\Communications\Application\SendSmtpTestEmail\SendSmtpTestEmail;
+use DaemsModule\Communications\Application\UpdateNewsletterDraft\UpdateNewsletterDraft;
 use DaemsModule\Communications\Application\UpdateUserCommunicationPreference\UpdateUserCommunicationPreference;
 use DaemsModule\Communications\Domain\Audience\AudienceResolverInterface;
 use DaemsModule\Communications\Domain\Mail\MailerInterface;
@@ -290,6 +295,50 @@ return static function (Container $container): void {
         static fn(Container $c) => new TemplatesController(
             $c->make(GetTemplateOverrides::class),
             $c->make(SaveTemplateOverrides::class),
+        ),
+    );
+
+    // ---------------------------------------------------------------------
+    // Newsletter CRUD — Wave E Tasks E2 + E3 (Milestone 0.8).
+    // The block renderer is intentionally NOT a singleton — SendNewsletter
+    // instantiates it inline with the per-tenant brand-primary-color.
+    // ---------------------------------------------------------------------
+    $container->bind(
+        CreateNewsletterDraft::class,
+        static fn(Container $c) => new CreateNewsletterDraft(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+            $c->make(Clock::class),
+        ),
+    );
+    $container->bind(
+        UpdateNewsletterDraft::class,
+        static fn(Container $c) => new UpdateNewsletterDraft(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        DeleteNewsletterDraft::class,
+        static fn(Container $c) => new DeleteNewsletterDraft(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        ListNewsletters::class,
+        static fn(Container $c) => new ListNewsletters(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        SendNewsletter::class,
+        static fn(Container $c) => new SendNewsletter(
+            $c->make(NewsletterDraftRepositoryInterface::class),
+            $c->make(AudienceResolverInterface::class),
+            $c->make(TenantCommunicationSettingsRepositoryInterface::class),
+            $c->make(MailOutboxRepositoryInterface::class),
+            $c->make(MailSuppressionRepositoryInterface::class),
+            $c->make(EmailHtmlRenderer::class),
+            $c->make(MarkdownRenderer::class),
+            $c->make(Clock::class),
         ),
     );
 };
