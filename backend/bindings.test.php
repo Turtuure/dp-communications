@@ -2,18 +2,28 @@
 
 declare(strict_types=1);
 
+use Daems\Domain\Shared\Clock;
 use Daems\Infrastructure\Framework\Container\Container;
+use DaemsModule\Communications\Application\ComposeAndPreviewMessage\ComposeAndPreviewMessage;
+use DaemsModule\Communications\Application\CreateMeetingFromComposer\CreateMeetingFromComposer;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
+use DaemsModule\Communications\Application\GetMeetingForReInvite\GetMeetingForReInvite;
 use DaemsModule\Communications\Application\GetUserCommunicationPreferences\GetUserCommunicationPreferences;
 use DaemsModule\Communications\Application\ListOutboxRows\ListOutboxRows;
 use DaemsModule\Communications\Application\RetryOutboxRow\RetryOutboxRow;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
+use DaemsModule\Communications\Application\SendComposedMessage\SendComposedMessage;
 use DaemsModule\Communications\Application\SendSmtpTestEmail\SendSmtpTestEmail;
 use DaemsModule\Communications\Application\UpdateUserCommunicationPreference\UpdateUserCommunicationPreference;
+use DaemsModule\Communications\Domain\Audience\AudienceResolverInterface;
 use DaemsModule\Communications\Domain\Mail\MailerInterface;
 use DaemsModule\Communications\Domain\Mail\MailOutboxRepositoryInterface;
+use DaemsModule\Communications\Domain\Mail\MailSuppressionRepositoryInterface;
+use DaemsModule\Communications\Domain\Meeting\MeetingRepositoryInterface;
 use DaemsModule\Communications\Domain\Preference\UserCommunicationPreferenceRepositoryInterface;
 use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettingsRepositoryInterface;
+use DaemsModule\Communications\Domain\Template\MailTemplateRepositoryInterface;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\ComposerController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
@@ -23,7 +33,11 @@ use DaemsModule\Communications\Infrastructure\Renderer\Html2Text;
 use DaemsModule\Communications\Infrastructure\Renderer\MailTemplateRegistry;
 use DaemsModule\Communications\Infrastructure\Renderer\MarkdownRenderer;
 use DaemsModule\Communications\Infrastructure\Renderer\VarSubstituter;
+use DaemsModule\Communications\Tests\Support\InMemoryAudienceResolver;
 use DaemsModule\Communications\Tests\Support\InMemoryMailOutboxRepository;
+use DaemsModule\Communications\Tests\Support\InMemoryMailSuppressionRepository;
+use DaemsModule\Communications\Tests\Support\InMemoryMailTemplateRepository;
+use DaemsModule\Communications\Tests\Support\InMemoryMeetingRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryTenantCommunicationSettingsRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryUserCommunicationPreferenceRepository;
 
@@ -54,6 +68,22 @@ return static function (Container $container): void {
     $container->singleton(
         MailOutboxRepositoryInterface::class,
         static fn(): MailOutboxRepositoryInterface => new InMemoryMailOutboxRepository(),
+    );
+    $container->singleton(
+        MailSuppressionRepositoryInterface::class,
+        static fn(): MailSuppressionRepositoryInterface => new InMemoryMailSuppressionRepository(),
+    );
+    $container->singleton(
+        MailTemplateRepositoryInterface::class,
+        static fn(): MailTemplateRepositoryInterface => new InMemoryMailTemplateRepository(),
+    );
+    $container->singleton(
+        MeetingRepositoryInterface::class,
+        static fn(): MeetingRepositoryInterface => new InMemoryMeetingRepository(),
+    );
+    $container->singleton(
+        AudienceResolverInterface::class,
+        static fn(): AudienceResolverInterface => new InMemoryAudienceResolver(),
     );
 
     // ---------------------------------------------------------------------

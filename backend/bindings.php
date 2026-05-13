@@ -2,15 +2,20 @@
 
 declare(strict_types=1);
 
+use Daems\Domain\Shared\Clock;
 use Daems\Infrastructure\Framework\Container\Container;
 use Daems\Infrastructure\Framework\Database\Connection;
+use DaemsModule\Communications\Application\ComposeAndPreviewMessage\ComposeAndPreviewMessage;
+use DaemsModule\Communications\Application\CreateMeetingFromComposer\CreateMeetingFromComposer;
 use DaemsModule\Communications\Application\DrainMailOutbox\DrainMailOutbox;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
+use DaemsModule\Communications\Application\GetMeetingForReInvite\GetMeetingForReInvite;
 use DaemsModule\Communications\Application\GetUserCommunicationPreferences\GetUserCommunicationPreferences;
 use DaemsModule\Communications\Application\ListOutboxRows\ListOutboxRows;
 use DaemsModule\Communications\Application\MarkSuppressedRecipientsInPending\MarkSuppressedRecipientsInPending;
 use DaemsModule\Communications\Application\RetryOutboxRow\RetryOutboxRow;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
+use DaemsModule\Communications\Application\SendComposedMessage\SendComposedMessage;
 use DaemsModule\Communications\Application\SendSmtpTestEmail\SendSmtpTestEmail;
 use DaemsModule\Communications\Application\UpdateUserCommunicationPreference\UpdateUserCommunicationPreference;
 use DaemsModule\Communications\Domain\Audience\AudienceResolverInterface;
@@ -22,6 +27,7 @@ use DaemsModule\Communications\Domain\Preference\UserCommunicationPreferenceRepo
 use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettingsRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\MailTemplateRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\NewsletterDraftRepositoryInterface;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\ComposerController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 use DaemsModule\Communications\Infrastructure\Audience\SqlAudienceResolver;
@@ -211,6 +217,53 @@ return static function (Container $container): void {
             $c->make(GetCommunicationSettings::class),
             $c->make(SaveCommunicationSettings::class),
             $c->make(SendSmtpTestEmail::class),
+        ),
+    );
+
+    // ---------------------------------------------------------------------
+    // Composer use cases — Wave D Tasks D4/D5/D6.
+    // ---------------------------------------------------------------------
+    $container->bind(
+        ComposeAndPreviewMessage::class,
+        static fn(Container $c) => new ComposeAndPreviewMessage(
+            $c->make(AudienceResolverInterface::class),
+            $c->make(MailTemplateRepositoryInterface::class),
+            $c->make(TenantCommunicationSettingsRepositoryInterface::class),
+            $c->make(EmailHtmlRenderer::class),
+        ),
+    );
+    $container->bind(
+        CreateMeetingFromComposer::class,
+        static fn(Container $c) => new CreateMeetingFromComposer(
+            $c->make(MeetingRepositoryInterface::class),
+            $c->make(Clock::class),
+        ),
+    );
+    $container->bind(
+        GetMeetingForReInvite::class,
+        static fn(Container $c) => new GetMeetingForReInvite(
+            $c->make(MeetingRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        SendComposedMessage::class,
+        static fn(Container $c) => new SendComposedMessage(
+            $c->make(AudienceResolverInterface::class),
+            $c->make(MailTemplateRepositoryInterface::class),
+            $c->make(TenantCommunicationSettingsRepositoryInterface::class),
+            $c->make(MailOutboxRepositoryInterface::class),
+            $c->make(MailSuppressionRepositoryInterface::class),
+            $c->make(EmailHtmlRenderer::class),
+            $c->make(CreateMeetingFromComposer::class),
+            $c->make(Clock::class),
+        ),
+    );
+    $container->bind(
+        ComposerController::class,
+        static fn(Container $c) => new ComposerController(
+            $c->make(ComposeAndPreviewMessage::class),
+            $c->make(SendComposedMessage::class),
+            $c->make(CreateMeetingFromComposer::class),
         ),
     );
 };

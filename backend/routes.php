@@ -8,6 +8,7 @@ use Daems\Infrastructure\Framework\Http\Middleware\TenantContextMiddleware;
 use Daems\Infrastructure\Framework\Http\Request;
 use Daems\Infrastructure\Framework\Http\Response;
 use Daems\Infrastructure\Framework\Http\Router;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\ComposerController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 
@@ -42,5 +43,18 @@ return static function (Router $router, Container $container): void {
 
     $router->post('/api/v1/backstage/communications/settings/smtp-test', static function (Request $req) use ($container): Response {
         return $container->make(SettingsController::class)->testSmtp($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    // Backstage — composer (Wave D Task D6, preview + send + meeting creation)
+    $router->post('/api/v1/backstage/communications/preview', static function (Request $req) use ($container): Response {
+        return $container->make(ComposerController::class)->preview($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->post('/api/v1/backstage/communications/send', static function (Request $req) use ($container): Response {
+        return $container->make(ComposerController::class)->send($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->post('/api/v1/meetings/from-composer', static function (Request $req) use ($container): Response {
+        return $container->make(ComposerController::class)->createMeeting($req);
     }, [TenantContextMiddleware::class, AuthMiddleware::class]);
 };
