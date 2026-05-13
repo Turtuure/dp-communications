@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="{{locale}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{subject}}</title>
+  <style>
+    @media (max-width:600px) {
+      .container { width:100% !important; }
+      .col { display:block !important; width:100% !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f4;">
+    <tr><td align="center" style="padding:20px 12px;">
+      <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:6px;overflow:hidden;">
+        <tr><td style="background:{{brand_primary_color}};padding:18px 22px;">
+          <img src="{{brand_logo_url}}" alt="" width="160" style="display:block;border:0;outline:none;">
+        </td></tr>
+        <tr><td style="padding:22px 26px;">
+          <h1 style="margin:0 0 14px 0;font-size:20px;color:{{brand_primary_color}};">{{subject}}</h1>
+          <p style="margin:0 0 12px 0;font-size:14px;color:#333;">Hei {{first_name}},</p>
+          <div style="margin:0 0 14px 0;font-size:14px;color:#333;line-height:1.55;">{{intro_text_html}}</div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa;border-radius:4px;margin:12px 0;">
+            <tr><td style="padding:12px 16px;font-size:13px;color:#444;line-height:1.6;">
+              <strong>{{meeting_title}}</strong><br>
+              <strong>Päivä:</strong> {{meeting_date}}<br>
+              <strong>Paikka:</strong> {{meeting_location}}<br>
+              <strong>Etänä:</strong> <a href="{{meeting_remote_url}}" style="color:{{brand_primary_color}};">{{meeting_remote_url}}</a>
+            </td></tr>
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa;border-left:3px solid {{brand_primary_color}};margin:12px 0;">
+            <tr><td style="padding:10px 14px;font-size:13px;color:#333;">
+              <strong>Asialista:</strong>
+              {{agenda_html}}
+            </td></tr>
+          </table>
+          <p style="margin:0 0 14px 0;font-size:12px;color:#555;">{{documents_list}}</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:18px auto;">
+            <tr><td style="background:{{brand_primary_color}};border-radius:4px;">
+              <a href="{{rsvp_url}}" style="display:inline-block;padding:10px 22px;color:#ffffff;text-decoration:none;font-size:13px;font-weight:600;">Vahvista osallistuminen</a>
+            </td></tr>
+          </table>
+          <p style="margin:18px 0 0 0;font-size:13px;color:#444;">{{signature}}</p>
+        </td></tr>
+        <tr><td style="background:#f8f8f8;padding:14px 22px;text-align:center;font-size:11px;color:#888;">
+          {{brand_footer_address}}
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

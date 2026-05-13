@@ -18,6 +18,11 @@ use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxContr
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
 use DaemsModule\Communications\Infrastructure\Mailer\InMemoryMailer;
+use DaemsModule\Communications\Infrastructure\Renderer\EmailHtmlRenderer;
+use DaemsModule\Communications\Infrastructure\Renderer\Html2Text;
+use DaemsModule\Communications\Infrastructure\Renderer\MailTemplateRegistry;
+use DaemsModule\Communications\Infrastructure\Renderer\MarkdownRenderer;
+use DaemsModule\Communications\Infrastructure\Renderer\VarSubstituter;
 use DaemsModule\Communications\Tests\Support\InMemoryMailOutboxRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryTenantCommunicationSettingsRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryUserCommunicationPreferenceRepository;
@@ -49,6 +54,23 @@ return static function (Container $container): void {
     $container->singleton(
         MailOutboxRepositoryInterface::class,
         static fn(): MailOutboxRepositoryInterface => new InMemoryMailOutboxRepository(),
+    );
+
+    // ---------------------------------------------------------------------
+    // Render foundation — Wave D (D1+D2+D3). Same wiring as prod.
+    // ---------------------------------------------------------------------
+    $container->singleton(MarkdownRenderer::class, static fn(): MarkdownRenderer => new MarkdownRenderer());
+    $container->singleton(VarSubstituter::class, static fn(): VarSubstituter => new VarSubstituter());
+    $container->singleton(Html2Text::class, static fn(): Html2Text => new Html2Text());
+    $container->singleton(MailTemplateRegistry::class, static fn(): MailTemplateRegistry => new MailTemplateRegistry());
+    $container->singleton(
+        EmailHtmlRenderer::class,
+        static fn(Container $c) => new EmailHtmlRenderer(
+            $c->make(MailTemplateRegistry::class),
+            $c->make(VarSubstituter::class),
+            $c->make(MarkdownRenderer::class),
+            $c->make(Html2Text::class),
+        ),
     );
 
     // ---------------------------------------------------------------------
