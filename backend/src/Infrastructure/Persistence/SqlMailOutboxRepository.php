@@ -155,6 +155,16 @@ final class SqlMailOutboxRepository implements MailOutboxRepositoryInterface
         }
     }
 
+    public function listQueued(): array
+    {
+        $sql = 'SELECT * FROM mail_outbox WHERE status = ? ORDER BY queued_at ASC';
+        $out = [];
+        foreach ($this->db->query($sql, [MailOutboxStatus::Queued->value]) as $row) {
+            $out[] = $this->hydrate($row);
+        }
+        return $out;
+    }
+
     public function markStatus(MailOutboxId $id, MailOutboxStatus $status, ?string $error = null): void
     {
         if ($status === MailOutboxStatus::Sent) {
@@ -176,6 +186,14 @@ final class SqlMailOutboxRepository implements MailOutboxRepositoryInterface
         $this->db->execute(
             'UPDATE mail_outbox SET attempt_count = attempt_count + 1, last_error = ? WHERE id = ?',
             [$error, $id->value()],
+        );
+    }
+
+    public function resetAttemptCount(MailOutboxId $id): void
+    {
+        $this->db->execute(
+            'UPDATE mail_outbox SET attempt_count = 0 WHERE id = ?',
+            [$id->value()],
         );
     }
 

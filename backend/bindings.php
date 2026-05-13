@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 use Daems\Infrastructure\Framework\Container\Container;
 use Daems\Infrastructure\Framework\Database\Connection;
+use DaemsModule\Communications\Application\DrainMailOutbox\DrainMailOutbox;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
 use DaemsModule\Communications\Application\GetUserCommunicationPreferences\GetUserCommunicationPreferences;
+use DaemsModule\Communications\Application\ListOutboxRows\ListOutboxRows;
+use DaemsModule\Communications\Application\MarkSuppressedRecipientsInPending\MarkSuppressedRecipientsInPending;
+use DaemsModule\Communications\Application\RetryOutboxRow\RetryOutboxRow;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
 use DaemsModule\Communications\Application\SendSmtpTestEmail\SendSmtpTestEmail;
 use DaemsModule\Communications\Application\UpdateUserCommunicationPreference\UpdateUserCommunicationPreference;
@@ -130,4 +134,36 @@ return static function (Container $container): void {
         ),
     );
 
+    // ---------------------------------------------------------------------
+    // Outbox + drain — Wave C tasks C4 + C5 (cron + admin retry).
+    // ---------------------------------------------------------------------
+    $container->bind(
+        MarkSuppressedRecipientsInPending::class,
+        static fn(Container $c) => new MarkSuppressedRecipientsInPending(
+            $c->make(MailOutboxRepositoryInterface::class),
+            $c->make(MailSuppressionRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        DrainMailOutbox::class,
+        static fn(Container $c) => new DrainMailOutbox(
+            $c->make(MailOutboxRepositoryInterface::class),
+            $c->make(MailSuppressionRepositoryInterface::class),
+            $c->make(TenantCommunicationSettingsRepositoryInterface::class),
+            $c->make(MailerInterface::class),
+            $c->make(MarkSuppressedRecipientsInPending::class),
+        ),
+    );
+    $container->bind(
+        ListOutboxRows::class,
+        static fn(Container $c) => new ListOutboxRows(
+            $c->make(MailOutboxRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        RetryOutboxRow::class,
+        static fn(Container $c) => new RetryOutboxRow(
+            $c->make(MailOutboxRepositoryInterface::class),
+        ),
+    );
 };
