@@ -1,0 +1,19 @@
+{
+  "name": "daems/dp-communications",
+  "description": "Communications module for daems-platform",
+  "type": "project",
+  "license": "proprietary",
+  "autoload": {
+    "psr-4": {
+      "DaemsModule\\Communications\\": "backend/src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "DaemsModule\\Communications\\Tests\\": "backend/tests/"
+    }
+  },
+  "require": {
+    "php": "^8.3"
+  }
+}
