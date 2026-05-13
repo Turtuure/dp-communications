@@ -22,6 +22,7 @@ use DaemsModule\Communications\Domain\Preference\UserCommunicationPreferenceRepo
 use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettingsRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\MailTemplateRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\NewsletterDraftRepositoryInterface;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Audience\SqlAudienceResolver;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
 use DaemsModule\Communications\Infrastructure\Mailer\SymfonyMailerAdapter;
@@ -163,6 +164,18 @@ return static function (Container $container): void {
     $container->bind(
         RetryOutboxRow::class,
         static fn(Container $c) => new RetryOutboxRow(
+            $c->make(MailOutboxRepositoryInterface::class),
+        ),
+    );
+
+    // ---------------------------------------------------------------------
+    // HTTP controllers — backstage outbox (C6).
+    // ---------------------------------------------------------------------
+    $container->bind(
+        OutboxController::class,
+        static fn(Container $c) => new OutboxController(
+            $c->make(ListOutboxRows::class),
+            $c->make(RetryOutboxRow::class),
             $c->make(MailOutboxRepositoryInterface::class),
         ),
     );

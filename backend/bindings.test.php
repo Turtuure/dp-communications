@@ -5,14 +5,19 @@ declare(strict_types=1);
 use Daems\Infrastructure\Framework\Container\Container;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
 use DaemsModule\Communications\Application\GetUserCommunicationPreferences\GetUserCommunicationPreferences;
+use DaemsModule\Communications\Application\ListOutboxRows\ListOutboxRows;
+use DaemsModule\Communications\Application\RetryOutboxRow\RetryOutboxRow;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
 use DaemsModule\Communications\Application\SendSmtpTestEmail\SendSmtpTestEmail;
 use DaemsModule\Communications\Application\UpdateUserCommunicationPreference\UpdateUserCommunicationPreference;
 use DaemsModule\Communications\Domain\Mail\MailerInterface;
+use DaemsModule\Communications\Domain\Mail\MailOutboxRepositoryInterface;
 use DaemsModule\Communications\Domain\Preference\UserCommunicationPreferenceRepositoryInterface;
 use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettingsRepositoryInterface;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
 use DaemsModule\Communications\Infrastructure\Mailer\InMemoryMailer;
+use DaemsModule\Communications\Tests\Support\InMemoryMailOutboxRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryTenantCommunicationSettingsRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryUserCommunicationPreferenceRepository;
 
@@ -30,7 +35,6 @@ return static function (Container $container): void {
 
     // ---------------------------------------------------------------------
     // Repositories — InMemory fakes (override prod SQL singletons).
-    // Only the repos used by Wave B use cases need fake implementations;
     // Mail/Meeting/Newsletter/Template/Audience/Suppression land in C-G.
     // ---------------------------------------------------------------------
     $container->singleton(
@@ -40,6 +44,10 @@ return static function (Container $container): void {
     $container->singleton(
         UserCommunicationPreferenceRepositoryInterface::class,
         static fn(): UserCommunicationPreferenceRepositoryInterface => new InMemoryUserCommunicationPreferenceRepository(),
+    );
+    $container->singleton(
+        MailOutboxRepositoryInterface::class,
+        static fn(): MailOutboxRepositoryInterface => new InMemoryMailOutboxRepository(),
     );
 
     // ---------------------------------------------------------------------
@@ -86,6 +94,30 @@ return static function (Container $container): void {
         static fn(Container $c) => new SendSmtpTestEmail(
             $c->make(MailerInterface::class),
             $c->make(TenantCommunicationSettingsRepositoryInterface::class),
+        ),
+    );
+
+    // ---------------------------------------------------------------------
+    // Outbox use cases + controller — Wave C C5/C6 (admin list/retry API).
+    // ---------------------------------------------------------------------
+    $container->bind(
+        ListOutboxRows::class,
+        static fn(Container $c) => new ListOutboxRows(
+            $c->make(MailOutboxRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        RetryOutboxRow::class,
+        static fn(Container $c) => new RetryOutboxRow(
+            $c->make(MailOutboxRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        OutboxController::class,
+        static fn(Container $c) => new OutboxController(
+            $c->make(ListOutboxRows::class),
+            $c->make(RetryOutboxRow::class),
+            $c->make(MailOutboxRepositoryInterface::class),
         ),
     );
 };

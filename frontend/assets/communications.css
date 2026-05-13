@@ -1,0 +1,94 @@
+/*
+ * Communications module — backstage styles.
+ *
+ * Wave C7 ships outbox-only rules: filter row, table, status pills, toast.
+ * Wave D will expand for composer; Wave E for newsletters; Wave F templates.
+ * Tokens (--brand-*, --status-*, --surface-*, --text-*) are inherited from
+ * daems-backstage-system.css — no new tokens defined here.
+ */
+
+/* ── Outbox: filter form ─────────────────────────────────────────── */
+.comms-outbox__filters {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.comms-outbox__filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.comms-outbox__filters input,
+.comms-outbox__filters select {
+    font: inherit;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    background: var(--surface-light);
+    color: var(--text-primary);
+}
+
+/* ── Outbox: table ───────────────────────────────────────────────── */
+.comms-outbox__list-wrap {
+    margin-top: 1rem;
+}
+
+.comms-outbox__list {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.comms-outbox__list th,
+.comms-outbox__list td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--surface-border);
+    vertical-align: middle;
+}
+
+.comms-outbox__list th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+}
+
+/* ── Outbox: status pills ────────────────────────────────────────── */
+.status-pill {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.85em;
+    line-height: 1.4;
+    background: var(--surface-light);
+    color: var(--text-secondary);
+    border: 1px solid var(--surface-border);
+}
+
+.status-pill.status-queued     { background: var(--surface-light);          color: var(--text-secondary); border-color: var(--surface-border); }
+.status-pill.status-sending    { background: var(--brand-primary-subtle);   color: var(--brand-primary);  border-color: transparent; }
+.status-pill.status-sent       { background: var(--status-success-subtle);  color: var(--status-success); border-color: transparent; }
+.status-pill.status-failed     { background: var(--status-error-subtle);    color: var(--status-error);   border-color: transparent; }
+.status-pill.status-bounced    { background: var(--status-warning-subtle);  color: var(--status-warning); border-color: transparent; }
+.status-pill.status-suppressed { background: rgba(148, 163, 184, 0.15);     color: var(--text-secondary); border-color: transparent; }
+
+/* ── Outbox: fallback toast (only used if window.daemsToast missing) ── */
+.comms-toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 9999;
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+    font-size: 0.9rem;
+}
+
+.comms-toast--success { background: var(--status-success-subtle); color: var(--status-success); }
+.comms-toast--error   { background: var(--status-error-subtle);   color: var(--status-error); }
+.comms-toast--info    { background: var(--brand-primary-subtle);  color: var(--brand-primary); }
