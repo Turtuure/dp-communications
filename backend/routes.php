@@ -9,6 +9,7 @@ use Daems\Infrastructure\Framework\Http\Request;
 use Daems\Infrastructure\Framework\Http\Response;
 use Daems\Infrastructure\Framework\Http\Router;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\ComposerController;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\NewslettersController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\TemplatesController;
@@ -66,5 +67,26 @@ return static function (Router $router, Container $container): void {
 
     $router->put('/api/v1/backstage/communications/templates/{kind}/{locale}', static function (Request $req, array $params) use ($container): Response {
         return $container->make(TemplatesController::class)->update($req, $params);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    // Backstage — newsletters CRUD + send (Wave E Task E4).
+    $router->get('/api/v1/backstage/communications/newsletters', static function (Request $req) use ($container): Response {
+        return $container->make(NewslettersController::class)->index($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->post('/api/v1/backstage/communications/newsletters', static function (Request $req) use ($container): Response {
+        return $container->make(NewslettersController::class)->create($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->patch('/api/v1/backstage/communications/newsletters/{id}', static function (Request $req, array $params) use ($container): Response {
+        return $container->make(NewslettersController::class)->update($req, $params);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->delete('/api/v1/backstage/communications/newsletters/{id}', static function (Request $req, array $params) use ($container): Response {
+        return $container->make(NewslettersController::class)->destroy($req, $params);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->post('/api/v1/backstage/communications/newsletters/{id}/send', static function (Request $req, array $params) use ($container): Response {
+        return $container->make(NewslettersController::class)->send($req, $params);
     }, [TenantContextMiddleware::class, AuthMiddleware::class]);
 };

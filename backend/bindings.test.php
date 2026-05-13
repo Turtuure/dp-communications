@@ -32,6 +32,7 @@ use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettingsReposi
 use DaemsModule\Communications\Domain\Template\MailTemplateRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\NewsletterDraftRepositoryInterface;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\ComposerController;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\NewslettersController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\TemplatesController;
@@ -261,6 +262,18 @@ return static function (Container $container): void {
             $c->make(EmailHtmlRenderer::class),
             $c->make(MarkdownRenderer::class),
             $c->make(Clock::class),
+        ),
+    );
+
+    // Newsletters HTTP controller — Wave E Task E4.
+    $container->bind(
+        NewslettersController::class,
+        static fn(Container $c) => new NewslettersController(
+            $c->make(ListNewsletters::class),
+            $c->make(CreateNewsletterDraft::class),
+            $c->make(UpdateNewsletterDraft::class),
+            $c->make(DeleteNewsletterDraft::class),
+            $c->make(SendNewsletter::class),
         ),
     );
 };

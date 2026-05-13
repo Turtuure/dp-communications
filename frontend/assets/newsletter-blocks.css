@@ -1,0 +1,301 @@
+/*
+ * Newsletter blocks editor — Wave E Task E5.
+ *
+ * Two-page bundle: list page (.comms-newsletters) + edit page
+ * (.comms-newsletter-edit). Tokens inherited from daems-backstage-system.css.
+ */
+
+/* ── List page ────────────────────────────────────────────────────── */
+.comms-newsletters__list {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.comms-newsletters__list th,
+.comms-newsletters__list td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.comms-newsletters__list a {
+    color: var(--brand-primary);
+    text-decoration: none;
+}
+
+.comms-newsletters__list a:hover {
+    text-decoration: underline;
+}
+
+/* ── Edit page layout ─────────────────────────────────────────────── */
+.comms-newsletter-edit__topbar {
+    display: flex;
+    gap: 1.5rem;
+    align-items: end;
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background: var(--surface-light);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    flex-wrap: wrap;
+}
+
+.comms-newsletter-edit__topbar-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    min-width: 200px;
+}
+
+.comms-newsletter-edit__topbar-field--subject {
+    flex: 1;
+    min-width: 280px;
+}
+
+.comms-newsletter-edit__topbar input {
+    font: inherit;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    background: var(--surface-bg);
+    color: var(--text-primary);
+}
+
+.comms-newsletter-edit__locale-tabs {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.comms-locale-tab {
+    font: inherit;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-bg);
+    color: var(--text-primary);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.comms-locale-tab.is-active {
+    background: var(--brand-primary);
+    color: var(--brand-on-primary, #fff);
+    border-color: var(--brand-primary);
+}
+
+.comms-locale-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    padding: 0.1rem 0.4rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 999px;
+    margin-left: 0.25rem;
+}
+
+/* ── 3-column body ────────────────────────────────────────────────── */
+.comms-newsletter-edit__body {
+    display: grid;
+    grid-template-columns: 200px 1fr 300px;
+    gap: 1rem;
+    align-items: start;
+    margin: 1rem 0;
+}
+
+@media (max-width: 1100px) {
+    .comms-newsletter-edit__body {
+        grid-template-columns: 1fr;
+    }
+}
+
+.comms-newsletter-edit__palette,
+.comms-newsletter-edit__canvas,
+.comms-newsletter-edit__properties {
+    background: var(--surface-light);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    padding: 0.75rem;
+}
+
+.comms-newsletter-edit__palette h3,
+.comms-newsletter-edit__canvas h3,
+.comms-newsletter-edit__properties h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.comms-palette__buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.comms-palette-btn {
+    font: inherit;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    background: var(--surface-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+}
+
+.comms-palette-btn:hover {
+    border-color: var(--brand-primary);
+}
+
+/* ── Canvas ──────────────────────────────────────────────────────── */
+.comms-canvas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 200px;
+}
+
+.comms-canvas-empty {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.comms-block-card {
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface-bg);
+    cursor: pointer;
+}
+
+.comms-block-card.is-selected {
+    border-color: var(--brand-primary);
+    background: var(--surface-highlight, var(--surface-bg));
+}
+
+.comms-block-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.comms-block-card__kind {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.comms-block-card__controls {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.comms-block-card__controls button {
+    font: inherit;
+    width: 1.8rem;
+    height: 1.6rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 3px;
+    background: var(--surface-light);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.comms-block-card__controls button:hover {
+    border-color: var(--brand-primary);
+}
+
+.comms-block-card__preview {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+/* ── Properties pane ─────────────────────────────────────────────── */
+.comms-newsletter-edit__properties label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.comms-newsletter-edit__properties input,
+.comms-newsletter-edit__properties select,
+.comms-newsletter-edit__properties textarea {
+    font: inherit;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    background: var(--surface-bg);
+    color: var(--text-primary);
+}
+
+.comms-newsletter-edit__properties textarea {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+}
+
+.comms-muted {
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0;
+}
+
+/* ── Bottom bar ──────────────────────────────────────────────────── */
+.comms-newsletter-edit__bottombar {
+    background: var(--surface-light);
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin: 1rem 0;
+}
+
+.comms-newsletter-edit__bottombar h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.comms-audience-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.comms-audience-row label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    min-width: 220px;
+    flex: 1;
+}
+
+.comms-audience-row input,
+.comms-audience-row select {
+    font: inherit;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 4px;
+    background: var(--surface-bg);
+    color: var(--text-primary);
+}
+
+.comms-newsletter-edit__send-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.comms-newsletter-edit__autosave .status-badge {
+    font-size: 0.75rem;
+}
