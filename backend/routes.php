@@ -11,6 +11,7 @@ use Daems\Infrastructure\Framework\Http\Router;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\ComposerController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\TemplatesController;
 
 // HTTP route registration for the communications module.
 // Loaded by the platform's ModuleRegistry::registerRoutes() at boot.
@@ -56,5 +57,14 @@ return static function (Router $router, Container $container): void {
 
     $router->post('/api/v1/meetings/from-composer', static function (Request $req) use ($container): Response {
         return $container->make(ComposerController::class)->createMeeting($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    // Backstage — template overrides (Wave D Task D8, per-tenant subject/intro/signature/footer)
+    $router->get('/api/v1/backstage/communications/templates/{kind}/{locale}', static function (Request $req, array $params) use ($container): Response {
+        return $container->make(TemplatesController::class)->show($req, $params);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->put('/api/v1/backstage/communications/templates/{kind}/{locale}', static function (Request $req, array $params) use ($container): Response {
+        return $container->make(TemplatesController::class)->update($req, $params);
     }, [TenantContextMiddleware::class, AuthMiddleware::class]);
 };

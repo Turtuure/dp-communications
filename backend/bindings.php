@@ -10,11 +10,13 @@ use DaemsModule\Communications\Application\CreateMeetingFromComposer\CreateMeeti
 use DaemsModule\Communications\Application\DrainMailOutbox\DrainMailOutbox;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
 use DaemsModule\Communications\Application\GetMeetingForReInvite\GetMeetingForReInvite;
+use DaemsModule\Communications\Application\GetTemplateOverrides\GetTemplateOverrides;
 use DaemsModule\Communications\Application\GetUserCommunicationPreferences\GetUserCommunicationPreferences;
 use DaemsModule\Communications\Application\ListOutboxRows\ListOutboxRows;
 use DaemsModule\Communications\Application\MarkSuppressedRecipientsInPending\MarkSuppressedRecipientsInPending;
 use DaemsModule\Communications\Application\RetryOutboxRow\RetryOutboxRow;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
+use DaemsModule\Communications\Application\SaveTemplateOverrides\SaveTemplateOverrides;
 use DaemsModule\Communications\Application\SendComposedMessage\SendComposedMessage;
 use DaemsModule\Communications\Application\SendSmtpTestEmail\SendSmtpTestEmail;
 use DaemsModule\Communications\Application\UpdateUserCommunicationPreference\UpdateUserCommunicationPreference;
@@ -30,6 +32,7 @@ use DaemsModule\Communications\Domain\Template\NewsletterDraftRepositoryInterfac
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\ComposerController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
+use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\TemplatesController;
 use DaemsModule\Communications\Infrastructure\Audience\SqlAudienceResolver;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
 use DaemsModule\Communications\Infrastructure\Mailer\SymfonyMailerAdapter;
@@ -264,6 +267,29 @@ return static function (Container $container): void {
             $c->make(ComposeAndPreviewMessage::class),
             $c->make(SendComposedMessage::class),
             $c->make(CreateMeetingFromComposer::class),
+        ),
+    );
+
+    // ---------------------------------------------------------------------
+    // Template overrides — Wave D Task D8.
+    // ---------------------------------------------------------------------
+    $container->bind(
+        GetTemplateOverrides::class,
+        static fn(Container $c) => new GetTemplateOverrides(
+            $c->make(MailTemplateRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        SaveTemplateOverrides::class,
+        static fn(Container $c) => new SaveTemplateOverrides(
+            $c->make(MailTemplateRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        TemplatesController::class,
+        static fn(Container $c) => new TemplatesController(
+            $c->make(GetTemplateOverrides::class),
+            $c->make(SaveTemplateOverrides::class),
         ),
     );
 };
