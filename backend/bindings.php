@@ -20,6 +20,7 @@ use DaemsModule\Communications\Domain\Template\MailTemplateRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\NewsletterDraftRepositoryInterface;
 use DaemsModule\Communications\Infrastructure\Audience\SqlAudienceResolver;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
+use DaemsModule\Communications\Infrastructure\Mailer\SymfonyMailerAdapter;
 use DaemsModule\Communications\Infrastructure\Persistence\SqlMailOutboxRepository;
 use DaemsModule\Communications\Infrastructure\Persistence\SqlMailSuppressionRepository;
 use DaemsModule\Communications\Infrastructure\Persistence\SqlMailTemplateRepository;
@@ -86,6 +87,14 @@ return static function (Container $container): void {
     );
 
     // ---------------------------------------------------------------------
+    // Mail transport — Symfony Mailer 6.4 over per-tenant SMTP DSN (C3).
+    // ---------------------------------------------------------------------
+    $container->singleton(
+        MailerInterface::class,
+        static fn(Container $c) => new SymfonyMailerAdapter($c->make(DsnEncryptor::class)),
+    );
+
+    // ---------------------------------------------------------------------
     // Use cases
     // ---------------------------------------------------------------------
     $container->bind(
@@ -121,8 +130,4 @@ return static function (Container $container): void {
         ),
     );
 
-    // Note: MailerInterface is wired in Wave C (Task C2 = InMemoryMailer for tests,
-    // Task C3 = SymfonyMailerAdapter for prod). SendSmtpTestEmail will fail at
-    // construction time until that binding lands — by design, it's controller-
-    // gated behind an admin route that doesn't exist yet.
 };

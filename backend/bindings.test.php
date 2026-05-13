@@ -6,10 +6,13 @@ use Daems\Infrastructure\Framework\Container\Container;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
 use DaemsModule\Communications\Application\GetUserCommunicationPreferences\GetUserCommunicationPreferences;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
+use DaemsModule\Communications\Application\SendSmtpTestEmail\SendSmtpTestEmail;
 use DaemsModule\Communications\Application\UpdateUserCommunicationPreference\UpdateUserCommunicationPreference;
+use DaemsModule\Communications\Domain\Mail\MailerInterface;
 use DaemsModule\Communications\Domain\Preference\UserCommunicationPreferenceRepositoryInterface;
 use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettingsRepositoryInterface;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
+use DaemsModule\Communications\Infrastructure\Mailer\InMemoryMailer;
 use DaemsModule\Communications\Tests\Support\InMemoryTenantCommunicationSettingsRepository;
 use DaemsModule\Communications\Tests\Support\InMemoryUserCommunicationPreferenceRepository;
 
@@ -40,9 +43,18 @@ return static function (Container $container): void {
     );
 
     // ---------------------------------------------------------------------
+    // Mail transport — capture-only InMemoryMailer for tests (C2).
+    // Tests that need to assert on a transport failure can flip
+    // `$mailer->simulateFailure = new MailerTransportException(...)` before
+    // exercising the use case.
+    // ---------------------------------------------------------------------
+    $container->singleton(
+        MailerInterface::class,
+        static fn(): MailerInterface => new InMemoryMailer(),
+    );
+
+    // ---------------------------------------------------------------------
     // Use cases (same wiring as prod, but constructed against fakes).
-    // SendSmtpTestEmail is intentionally NOT wired here — it needs
-    // MailerInterface, which lands in Wave C.
     // ---------------------------------------------------------------------
     $container->bind(
         GetCommunicationSettings::class,
@@ -67,6 +79,13 @@ return static function (Container $container): void {
         UpdateUserCommunicationPreference::class,
         static fn(Container $c) => new UpdateUserCommunicationPreference(
             $c->make(UserCommunicationPreferenceRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        SendSmtpTestEmail::class,
+        static fn(Container $c) => new SendSmtpTestEmail(
+            $c->make(MailerInterface::class),
+            $c->make(TenantCommunicationSettingsRepositoryInterface::class),
         ),
     );
 };
