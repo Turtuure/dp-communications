@@ -200,13 +200,35 @@ return static function (Container $container): void {
         ),
     );
 
-    // Backstage settings (Wave C8) — same wiring as prod against the fake repo / mailer.
+    // Backstage settings (Wave C8 + G2) — same wiring as prod against the fake repo / mailer.
+    $container->bind(
+        \DaemsModule\Communications\Application\ListSuppressions\ListSuppressions::class,
+        static fn(Container $c) => new \DaemsModule\Communications\Application\ListSuppressions\ListSuppressions(
+            $c->make(\DaemsModule\Communications\Domain\Mail\MailSuppressionRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        \DaemsModule\Communications\Application\AddManualSuppression\AddManualSuppression::class,
+        static fn(Container $c) => new \DaemsModule\Communications\Application\AddManualSuppression\AddManualSuppression(
+            $c->make(\DaemsModule\Communications\Domain\Mail\MailSuppressionRepositoryInterface::class),
+            $c->make(\Daems\Domain\Shared\Clock::class),
+        ),
+    );
+    $container->bind(
+        \DaemsModule\Communications\Application\RemoveSuppression\RemoveSuppression::class,
+        static fn(Container $c) => new \DaemsModule\Communications\Application\RemoveSuppression\RemoveSuppression(
+            $c->make(\DaemsModule\Communications\Domain\Mail\MailSuppressionRepositoryInterface::class),
+        ),
+    );
     $container->bind(
         SettingsController::class,
         static fn(Container $c) => new SettingsController(
             $c->make(GetCommunicationSettings::class),
             $c->make(SaveCommunicationSettings::class),
             $c->make(SendSmtpTestEmail::class),
+            $c->make(\DaemsModule\Communications\Application\ListSuppressions\ListSuppressions::class),
+            $c->make(\DaemsModule\Communications\Application\AddManualSuppression\AddManualSuppression::class),
+            $c->make(\DaemsModule\Communications\Application\RemoveSuppression\RemoveSuppression::class),
         ),
     );
 
