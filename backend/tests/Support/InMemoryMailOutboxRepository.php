@@ -27,6 +27,9 @@ final class InMemoryMailOutboxRepository implements MailOutboxRepositoryInterfac
     /** @var array<string, MailOutbox> indexed by outbox id */
     public array $byId = [];
 
+    /** @var array<string, true> outbox ids whose body fields have been retention-pseudonymized */
+    public array $pseudonymizedIds = [];
+
     public function save(MailOutbox $row): void
     {
         $this->byId[$row->id->value()] = $row;
@@ -222,6 +225,48 @@ final class InMemoryMailOutboxRepository implements MailOutboxRepositoryInterfac
             return true;
         }
         return false;
+    }
+
+    public function pseudonymizeOlderThan(\DateTimeImmutable $cutoff): int
+    {
+        $count = 0;
+        foreach ($this->byId as $id => $row) {
+            if ($row->queuedAt >= $cutoff) {
+                continue;
+            }
+            if (isset($this->pseudonymizedIds[$id])) {
+                continue;
+            }
+            // MailOutbox entity is readonly; rebuild with pseudonymized fields.
+            // The pseudonymized_at column tracking lives in $this->pseudonymizedIds
+            // since the entity doesn't expose it (SQL repo persists the flag
+            // server-side via the schema column).
+            $this->byId[$id] = new MailOutbox(
+                id:                  $row->id,
+                tenantId:            $row->tenantId,
+                kind:                $row->kind,
+                category:            $row->category,
+                recipientEmail:      'pseudo+' . substr(hash('sha256', $row->recipientEmail), 0, 16) . '@pseudonymized.example',
+                recipientUserId:     $row->recipientUserId,
+                locale:              $row->locale,
+                subject:             $row->subject,
+                bodyHtml:            '',
+                bodyText:            '',
+                payloadVars:         [],
+                payloadMeetingId:    $row->payloadMeetingId,
+                payloadInvoiceId:    $row->payloadInvoiceId,
+                payloadNewsletterId: $row->payloadNewsletterId,
+                status:              $row->status,
+                attemptCount:        $row->attemptCount,
+                lastError:           $row->lastError,
+                queuedAt:            $row->queuedAt,
+                sentAt:              $row->sentAt,
+                queuedBy:            $row->queuedBy,
+            );
+            $this->pseudonymizedIds[$id] = true;
+            $count++;
+        }
+        return $count;
     }
 
     /** Test helper — make a freshly-queued outbox row with sensible defaults. */

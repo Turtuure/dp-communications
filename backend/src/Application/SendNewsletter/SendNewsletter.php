@@ -21,6 +21,7 @@ use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettingsReposi
 use DaemsModule\Communications\Domain\Template\NewsletterDraft;
 use DaemsModule\Communications\Domain\Template\NewsletterDraftRepositoryInterface;
 use DaemsModule\Communications\Domain\Template\NewsletterStatus;
+use DaemsModule\Communications\Infrastructure\Auth\UnsubscribeTokenSigner;
 use DaemsModule\Communications\Infrastructure\Renderer\EmailHtmlRenderer;
 use DaemsModule\Communications\Infrastructure\Renderer\NewsletterBlockRenderer;
 use DaemsModule\Communications\Infrastructure\Renderer\MarkdownRenderer;
@@ -47,8 +48,9 @@ use DaemsModule\Communications\Infrastructure\Renderer\MarkdownRenderer;
  *      to en_GB content when their locale is empty).
  *   8. Flip the draft to `Sent` + record sentAt.
  *
- * Wave G Task G3 will swap the placeholder `unsubscribe_url` for a real
- * HMAC-signed token — until then the URL is a stable placeholder.
+ * Wave G Task G3 / Wave H Item 2: the `unsubscribe_url` now embeds a real
+ * HMAC-signed token issued by {@see UnsubscribeTokenSigner} keyed on the
+ * recipient + tenant + Marketing category. TTL is 30 days (signer default).
  *
  * Wave E Task E3 (Milestone 0.8 / communications-v1).
  */
@@ -65,6 +67,8 @@ final class SendNewsletter
         private readonly EmailHtmlRenderer $renderer,
         private readonly MarkdownRenderer $markdown,
         private readonly Clock $clock,
+        private readonly UnsubscribeTokenSigner $tokenSigner,
+        private readonly string $publicBaseUrl,
     ) {
     }
 
@@ -127,8 +131,13 @@ final class SendNewsletter
             $blocks     = $this->resolveBlocks($draft, $localeCode);
             $blockHtml  = $blockRenderer->renderAll($blocks);
 
-            // Wave G G3 will replace with HMAC-signed URL keyed on recipient id.
-            $unsubUrl = 'https://placeholder.local/unsubscribe?token=PLACEHOLDER';
+            // HMAC-signed one-click unsubscribe (Wave G G3 → Wave H Item 2).
+            // 30-day TTL (signer default) matches the mail-retention window.
+            $unsubUrl = sprintf(
+                '%s/unsubscribe?t=%s',
+                rtrim($this->publicBaseUrl, '/'),
+                $this->tokenSigner->sign($r->userId, $input->tenantId, CommunicationCategory::Marketing),
+            );
 
             $vars = [
                 'first_name'           => $r->firstName,

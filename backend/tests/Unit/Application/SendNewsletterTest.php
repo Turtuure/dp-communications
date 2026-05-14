@@ -27,6 +27,7 @@ use DaemsModule\Communications\Domain\Template\Block\HeadingBlock;
 use DaemsModule\Communications\Domain\Template\Block\ParagraphBlock;
 use DaemsModule\Communications\Domain\Template\NewsletterDraft;
 use DaemsModule\Communications\Domain\Template\NewsletterStatus;
+use DaemsModule\Communications\Infrastructure\Auth\UnsubscribeTokenSigner;
 use DaemsModule\Communications\Infrastructure\Renderer\EmailHtmlRenderer;
 use DaemsModule\Communications\Infrastructure\Renderer\Html2Text;
 use DaemsModule\Communications\Infrastructure\Renderer\MailTemplateRegistry;
@@ -77,6 +78,7 @@ final class SendNewsletterTest extends TestCase
             $md,
             new Html2Text(),
         );
+        $signer          = new UnsubscribeTokenSigner(base64_encode(sodium_crypto_secretbox_keygen()));
         $uc = new SendNewsletter(
             repo:            $repo,
             resolver:        $resolver,
@@ -86,6 +88,8 @@ final class SendNewsletterTest extends TestCase
             renderer:        $renderer,
             markdown:        $md,
             clock:           $clock,
+            tokenSigner:     $signer,
+            publicBaseUrl:   'http://test.local',
         );
         return [$uc, $repo, $resolver, $settingsRepo, $outboxRepo, $suppressionRepo];
     }
@@ -286,6 +290,27 @@ final class SendNewsletterTest extends TestCase
             self::assertSame('Subject', $row->subject);
             self::assertStringContainsString('EN', $row->bodyHtml);
         }
+    }
+
+    public function test_unsubscribe_url_is_hmac_signed_not_placeholder(): void
+    {
+        [$uc, $repo, $resolver, $settingsRepo, $outboxRepo] = $this->build();
+        $this->configureSmtp($settingsRepo);
+        $id = $this->seedDraft($repo);
+        $this->seedRecipients($resolver, 1);
+
+        $uc->execute(
+            new Input(tenantId: $this->tenantId(), newsletterId: $id),
+            $this->acting(UserTenantRole::Admin),
+        );
+
+        self::assertCount(1, $outboxRepo->byId);
+        $row = array_values($outboxRepo->byId)[0];
+        // URL must include the test base + ?t= token, NOT the placeholder.
+        $unsubUrl = $row->payloadVars['unsubscribe_url'] ?? '';
+        self::assertIsString($unsubUrl);
+        self::assertStringStartsWith('http://test.local/unsubscribe?t=', $unsubUrl);
+        self::assertStringNotContainsString('PLACEHOLDER', $unsubUrl);
     }
 
     public function test_suppressed_recipients_are_skipped(): void

@@ -295,6 +295,8 @@ return static function (Container $container): void {
             $c->make(EmailHtmlRenderer::class),
             $c->make(MarkdownRenderer::class),
             $c->make(Clock::class),
+            $c->make(UnsubscribeTokenSigner::class),
+            'http://test.local',
         ),
     );
 

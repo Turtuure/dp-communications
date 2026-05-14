@@ -223,6 +223,25 @@ final class SqlMailOutboxRepository implements MailOutboxRepositoryInterface
         return $row !== null;
     }
 
+    public function pseudonymizeOlderThan(\DateTimeImmutable $cutoff): int
+    {
+        $sql = <<<SQL
+            UPDATE mail_outbox
+            SET body_html        = '',
+                body_text        = '',
+                payload_vars     = '{}',
+                recipient_email  = LOWER(SHA2(recipient_email, 256)),
+                pseudonymized_at = NOW(3)
+            WHERE queued_at < ?
+              AND pseudonymized_at IS NULL
+            SQL;
+
+        $stmt = $this->db->pdo()->prepare($sql);
+        $stmt->execute([$cutoff->format('Y-m-d H:i:s.v')]);
+
+        return $stmt->rowCount();
+    }
+
     /**
      * @param array{status?: MailOutboxStatus, kind?: MailKind, from?: \DateTimeImmutable, to?: \DateTimeImmutable, recipient_substring?: string} $filters
      * @return array{0: list<string>, 1: list<mixed>}

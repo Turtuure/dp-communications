@@ -14,6 +14,7 @@ use Daems\Domain\Membership\Billing\MemberFeeInvoiceRepositoryInterface;
 use Daems\Domain\Tenant\TenantRepositoryInterface;
 use DaemsModule\Communications\Application\DrainMailOutbox\DrainMailOutbox;
 use DaemsModule\Communications\Application\EnqueueLapseWarnings\EnqueueLapseWarnings;
+use DaemsModule\Communications\Application\RetentionCleanup\RetentionCleanup;
 use DaemsModule\Communications\Application\EnqueuePaymentReminders\EnqueuePaymentReminders;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
 use DaemsModule\Communications\Application\GetMeetingForReInvite\GetMeetingForReInvite;
@@ -255,6 +256,12 @@ return static function (Container $container): void {
             $c->make(MailTemplateRepositoryInterface::class),
             $c->make(EmailHtmlRenderer::class),
             $c->make(Connection::class),
+        ),
+    );
+    $container->bind(
+        RetentionCleanup::class,
+        static fn(Container $c) => new RetentionCleanup(
+            $c->make(MailOutboxRepositoryInterface::class),
         ),
     );
     $container->bind(

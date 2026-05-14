@@ -71,4 +71,16 @@ interface MailOutboxRepositoryInterface
         int $hoursWindow,
         \DateTimeImmutable $now,
     ): bool;
+
+    /**
+     * GDPR retention: pseudonymize every outbox row whose `queued_at` is
+     * older than `$cutoff` AND has not yet been pseudonymized. The repo
+     * UPDATE empties body_html + body_text, resets payload_vars to '{}',
+     * replaces recipient_email with its SHA2-256 hex digest, and stamps
+     * `pseudonymized_at = NOW(3)` so subsequent passes skip the row.
+     *
+     * Run weekly via `bin/console mail:retention-cleanup` (24-month default).
+     * Returns the number of rows pseudonymized in this call.
+     */
+    public function pseudonymizeOlderThan(\DateTimeImmutable $cutoff): int;
 }
