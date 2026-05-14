@@ -53,4 +53,22 @@ interface MailOutboxRepositoryInterface
      * the first re-send.
      */
     public function resetAttemptCount(MailOutboxId $id): void;
+
+    /**
+     * Idempotency probe for the F1 + F2 cron use cases: return TRUE if any
+     * outbox row exists for `(tenant, invoice_id)` whose `payload_vars`
+     * contains the literal `"offset_tag":"<tag>"` AND whose `queued_at` is
+     * within the last `$hoursWindow` hours.
+     *
+     * The lookup avoids re-enqueueing a pre-due / post-due / lapse-warning
+     * reminder for the same invoice when the cron runs twice in the same
+     * day (e.g. Sat double-tick after a missed Fri tick).
+     */
+    public function existsRecentInvoiceReminder(
+        \Daems\Domain\Tenant\TenantId $tenantId,
+        \Daems\Domain\Membership\Billing\MemberFeeInvoiceId $invoiceId,
+        string $offsetTag,
+        int $hoursWindow,
+        \DateTimeImmutable $now,
+    ): bool;
 }

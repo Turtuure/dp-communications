@@ -9,7 +9,12 @@ use DaemsModule\Communications\Application\ComposeAndPreviewMessage\ComposeAndPr
 use DaemsModule\Communications\Application\CreateMeetingFromComposer\CreateMeetingFromComposer;
 use DaemsModule\Communications\Application\CreateNewsletterDraft\CreateNewsletterDraft;
 use DaemsModule\Communications\Application\DeleteNewsletterDraft\DeleteNewsletterDraft;
+use Daems\Domain\Governance\TenantGovernanceSettingsRepositoryInterface;
+use Daems\Domain\Membership\Billing\MemberFeeInvoiceRepositoryInterface;
+use Daems\Domain\Tenant\TenantRepositoryInterface;
 use DaemsModule\Communications\Application\DrainMailOutbox\DrainMailOutbox;
+use DaemsModule\Communications\Application\EnqueueLapseWarnings\EnqueueLapseWarnings;
+use DaemsModule\Communications\Application\EnqueuePaymentReminders\EnqueuePaymentReminders;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
 use DaemsModule\Communications\Application\GetMeetingForReInvite\GetMeetingForReInvite;
 use DaemsModule\Communications\Application\GetTemplateOverrides\GetTemplateOverrides;
@@ -198,6 +203,37 @@ return static function (Container $container): void {
         ListOutboxRows::class,
         static fn(Container $c) => new ListOutboxRows(
             $c->make(MailOutboxRepositoryInterface::class),
+        ),
+    );
+
+    // ---------------------------------------------------------------------
+    // Reminder + lapse-warning crons — Wave F (0.8) Tasks F1 + F2.
+    // ---------------------------------------------------------------------
+    $container->bind(
+        EnqueuePaymentReminders::class,
+        static fn(Container $c) => new EnqueuePaymentReminders(
+            $c->make(TenantRepositoryInterface::class),
+            $c->make(TenantCommunicationSettingsRepositoryInterface::class),
+            $c->make(MemberFeeInvoiceRepositoryInterface::class),
+            $c->make(MailOutboxRepositoryInterface::class),
+            $c->make(MailSuppressionRepositoryInterface::class),
+            $c->make(MailTemplateRepositoryInterface::class),
+            $c->make(EmailHtmlRenderer::class),
+            $c->make(Connection::class),
+        ),
+    );
+    $container->bind(
+        EnqueueLapseWarnings::class,
+        static fn(Container $c) => new EnqueueLapseWarnings(
+            $c->make(TenantRepositoryInterface::class),
+            $c->make(TenantCommunicationSettingsRepositoryInterface::class),
+            $c->make(TenantGovernanceSettingsRepositoryInterface::class),
+            $c->make(MemberFeeInvoiceRepositoryInterface::class),
+            $c->make(MailOutboxRepositoryInterface::class),
+            $c->make(MailSuppressionRepositoryInterface::class),
+            $c->make(MailTemplateRepositoryInterface::class),
+            $c->make(EmailHtmlRenderer::class),
+            $c->make(Connection::class),
         ),
     );
     $container->bind(

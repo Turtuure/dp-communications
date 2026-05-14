@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DaemsModule\Communications\Tests\Support;
 
 use Daems\Domain\Locale\SupportedLocale;
+use Daems\Domain\Membership\Billing\MemberFeeInvoiceId;
 use Daems\Domain\Tenant\TenantId;
 use Daems\Domain\User\UserId;
 use DaemsModule\Communications\Domain\Mail\MailKind;
@@ -192,6 +193,35 @@ final class InMemoryMailOutboxRepository implements MailOutboxRepositoryInterfac
             sentAt:              $row->sentAt,
             queuedBy:            $row->queuedBy,
         );
+    }
+
+    public function existsRecentInvoiceReminder(
+        TenantId $tenantId,
+        MemberFeeInvoiceId $invoiceId,
+        string $offsetTag,
+        int $hoursWindow,
+        \DateTimeImmutable $now,
+    ): bool {
+        $cutoff = $now->modify('-' . max(0, $hoursWindow) . ' hours');
+        foreach ($this->byId as $row) {
+            if (!$row->tenantId->equals($tenantId)) {
+                continue;
+            }
+            if ($row->payloadInvoiceId === null
+                || $row->payloadInvoiceId->value() !== $invoiceId->value()
+            ) {
+                continue;
+            }
+            $tag = $row->payloadVars['offset_tag'] ?? null;
+            if (!is_string($tag) || $tag !== $offsetTag) {
+                continue;
+            }
+            if ($row->queuedAt < $cutoff) {
+                continue;
+            }
+            return true;
+        }
+        return false;
     }
 
     /** Test helper — make a freshly-queued outbox row with sensible defaults. */

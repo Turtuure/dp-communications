@@ -8,6 +8,7 @@ use Daems\Domain\Locale\SupportedLocale;
 use Daems\Domain\Membership\Billing\MemberFeeInvoiceId;
 use Daems\Domain\Tenant\TenantId;
 use Daems\Domain\User\UserId;
+use DateTimeImmutable;
 use Daems\Infrastructure\Framework\Database\Connection;
 use DaemsModule\Communications\Domain\Mail\MailKind;
 use DaemsModule\Communications\Domain\Mail\MailOutbox;
@@ -195,6 +196,31 @@ final class SqlMailOutboxRepository implements MailOutboxRepositoryInterface
             'UPDATE mail_outbox SET attempt_count = 0 WHERE id = ?',
             [$id->value()],
         );
+    }
+
+    public function existsRecentInvoiceReminder(
+        TenantId $tenantId,
+        MemberFeeInvoiceId $invoiceId,
+        string $offsetTag,
+        int $hoursWindow,
+        \DateTimeImmutable $now,
+    ): bool {
+        $cutoff = $now->modify('-' . max(0, $hoursWindow) . ' hours');
+        $row = $this->db->queryOne(
+            'SELECT 1 AS hit FROM mail_outbox
+             WHERE tenant_id = ?
+               AND payload_invoice_id = ?
+               AND JSON_EXTRACT(payload_vars, "$.offset_tag") = ?
+               AND queued_at >= ?
+             LIMIT 1',
+            [
+                $tenantId->value(),
+                $invoiceId->value(),
+                $offsetTag,
+                $cutoff->format('Y-m-d H:i:s.v'),
+            ],
+        );
+        return $row !== null;
     }
 
     /**
