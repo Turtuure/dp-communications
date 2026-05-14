@@ -16,8 +16,7 @@ CREATE TABLE tenant_communication_settings (
     brand_footer_address         TEXT             NULL,
     updated_at                   DATETIME(3)      NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
     CONSTRAINT fk_tcs_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
-);
-
+) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- 2. Meetings (thin payload)
 CREATE TABLE meetings (
     id                CHAR(36)     PRIMARY KEY,
@@ -36,8 +35,7 @@ CREATE TABLE meetings (
     INDEX idx_meetings_tenant_status (tenant_id, status),
     CONSTRAINT fk_meetings_tenant  FOREIGN KEY (tenant_id)  REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT fk_meetings_creator FOREIGN KEY (created_by) REFERENCES users(id)
-);
-
+) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- 3. Mail-outbox (lähetysjono + audit)
 CREATE TABLE mail_outbox (
     id                    CHAR(36)     PRIMARY KEY,
@@ -68,8 +66,7 @@ CREATE TABLE mail_outbox (
     INDEX idx_outbox_retention (queued_at, pseudonymized_at),
     CONSTRAINT fk_outbox_tenant FOREIGN KEY (tenant_id)         REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT fk_outbox_user   FOREIGN KEY (recipient_user_id) REFERENCES users(id)
-);
-
+) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- 4. Mail-suppressions (hard-bounce + complaint + manual block)
 CREATE TABLE mail_suppressions (
     tenant_id           CHAR(36)     NOT NULL,
@@ -81,8 +78,7 @@ CREATE TABLE mail_suppressions (
     PRIMARY KEY (tenant_id, email_address),
     INDEX idx_suppression_tenant (tenant_id, suppressed_at DESC),
     CONSTRAINT fk_suppr_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
-);
-
+) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- 5. Template-overrides (4 strikt-tyypin admin-stringit, ei uutiskirjettä)
 CREATE TABLE mail_template_overrides (
     tenant_id  CHAR(36) NOT NULL,
@@ -94,8 +90,7 @@ CREATE TABLE mail_template_overrides (
     PRIMARY KEY (tenant_id, kind, locale),
     CONSTRAINT fk_mto_tenant FOREIGN KEY (tenant_id)  REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT fk_mto_user   FOREIGN KEY (updated_by) REFERENCES users(id)
-);
-
+) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- 6. Newsletter-drafts (vapaa blokki-rakenne)
 CREATE TABLE newsletter_drafts (
     id              CHAR(36) PRIMARY KEY,
@@ -112,8 +107,7 @@ CREATE TABLE newsletter_drafts (
     INDEX idx_newsletter_tenant_status (tenant_id, status),
     CONSTRAINT fk_nl_tenant  FOREIGN KEY (tenant_id)  REFERENCES tenants(id) ON DELETE CASCADE,
     CONSTRAINT fk_nl_creator FOREIGN KEY (created_by) REFERENCES users(id)
-);
-
+) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- 7. User-communication-preferences
 CREATE TABLE user_communication_preferences (
     user_id    CHAR(36) NOT NULL,
@@ -125,8 +119,7 @@ CREATE TABLE user_communication_preferences (
     INDEX idx_ucp_tenant (tenant_id, category, opted_in),
     CONSTRAINT fk_ucp_user   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
     CONSTRAINT fk_ucp_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
-);
-
+) ENGINE=InnoDB CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- Seed: default-preferences olemassaoleville jäsenille
 INSERT INTO user_communication_preferences (user_id, tenant_id, category, opted_in)
 SELECT u.id, ut.tenant_id, 'transactional', TRUE
