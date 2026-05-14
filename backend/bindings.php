@@ -19,9 +19,12 @@ use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunica
 use DaemsModule\Communications\Application\GetMeetingForReInvite\GetMeetingForReInvite;
 use DaemsModule\Communications\Application\GetTemplateOverrides\GetTemplateOverrides;
 use DaemsModule\Communications\Application\GetUserCommunicationPreferences\GetUserCommunicationPreferences;
+use DaemsModule\Communications\Application\AddManualSuppression\AddManualSuppression;
 use DaemsModule\Communications\Application\ListNewsletters\ListNewsletters;
 use DaemsModule\Communications\Application\ListOutboxRows\ListOutboxRows;
+use DaemsModule\Communications\Application\ListSuppressions\ListSuppressions;
 use DaemsModule\Communications\Application\MarkSuppressedRecipientsInPending\MarkSuppressedRecipientsInPending;
+use DaemsModule\Communications\Application\RemoveSuppression\RemoveSuppression;
 use DaemsModule\Communications\Application\RetryOutboxRow\RetryOutboxRow;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
 use DaemsModule\Communications\Application\SaveTemplateOverrides\SaveTemplateOverrides;
@@ -255,13 +258,40 @@ return static function (Container $container): void {
         ),
     );
 
-    // Backstage settings (Wave C8) — GET / PUT / POST smtp-test
+    // ---------------------------------------------------------------------
+    // Suppression use cases (Wave G Task G1).
+    // ---------------------------------------------------------------------
+    $container->bind(
+        ListSuppressions::class,
+        static fn(Container $c) => new ListSuppressions(
+            $c->make(MailSuppressionRepositoryInterface::class),
+        ),
+    );
+    $container->bind(
+        AddManualSuppression::class,
+        static fn(Container $c) => new AddManualSuppression(
+            $c->make(MailSuppressionRepositoryInterface::class),
+            $c->make(Clock::class),
+        ),
+    );
+    $container->bind(
+        RemoveSuppression::class,
+        static fn(Container $c) => new RemoveSuppression(
+            $c->make(MailSuppressionRepositoryInterface::class),
+        ),
+    );
+
+    // Backstage settings (Wave C8 + G2) — GET / PUT / POST smtp-test
+    //   + suppression list/add/remove (G2).
     $container->bind(
         SettingsController::class,
         static fn(Container $c) => new SettingsController(
             $c->make(GetCommunicationSettings::class),
             $c->make(SaveCommunicationSettings::class),
             $c->make(SendSmtpTestEmail::class),
+            $c->make(ListSuppressions::class),
+            $c->make(AddManualSuppression::class),
+            $c->make(RemoveSuppression::class),
         ),
     );
 

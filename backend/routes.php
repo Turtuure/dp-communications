@@ -89,4 +89,18 @@ return static function (Router $router, Container $container): void {
     $router->post('/api/v1/backstage/communications/newsletters/{id}/send', static function (Request $req, array $params) use ($container): Response {
         return $container->make(NewslettersController::class)->send($req, $params);
     }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    // Backstage — suppression list (Wave G Task G2) — admin only.
+    // Public unsubscribe + auto-add-from-bounce flows are not routed here.
+    $router->get('/api/v1/backstage/communications/suppressions', static function (Request $req) use ($container): Response {
+        return $container->make(SettingsController::class)->listSuppressions($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->post('/api/v1/backstage/communications/suppressions', static function (Request $req) use ($container): Response {
+        return $container->make(SettingsController::class)->addSuppression($req);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
+
+    $router->delete('/api/v1/backstage/communications/suppressions/{email}', static function (Request $req, array $params) use ($container): Response {
+        return $container->make(SettingsController::class)->removeSuppression($req, $params);
+    }, [TenantContextMiddleware::class, AuthMiddleware::class]);
 };

@@ -8,8 +8,14 @@ use Daems\Domain\Tenant\Tenant;
 use Daems\Domain\Tenant\TenantId;
 use Daems\Infrastructure\Framework\Http\Request;
 use Daems\Infrastructure\Framework\Http\Response;
+use DaemsModule\Communications\Application\AddManualSuppression\AddManualSuppression;
+use DaemsModule\Communications\Application\AddManualSuppression\Input as AddSuppressionInput;
 use DaemsModule\Communications\Application\GetCommunicationSettings\GetCommunicationSettings;
 use DaemsModule\Communications\Application\GetCommunicationSettings\Input as GetInput;
+use DaemsModule\Communications\Application\ListSuppressions\Input as ListSuppressionsInput;
+use DaemsModule\Communications\Application\ListSuppressions\ListSuppressions;
+use DaemsModule\Communications\Application\RemoveSuppression\Input as RemoveSuppressionInput;
+use DaemsModule\Communications\Application\RemoveSuppression\RemoveSuppression;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\Input as SaveInput;
 use DaemsModule\Communications\Application\SaveCommunicationSettings\SaveCommunicationSettings;
 use DaemsModule\Communications\Application\SendSmtpTestEmail\Input as TestInput;
@@ -18,6 +24,8 @@ use DaemsModule\Communications\Domain\Mail\Exception\MailerHardBounceException;
 use DaemsModule\Communications\Domain\Mail\Exception\MailerSoftBounceException;
 use DaemsModule\Communications\Domain\Mail\Exception\MailerTransportException;
 use DaemsModule\Communications\Domain\Mail\Exception\SmtpNotConfigured;
+use DaemsModule\Communications\Domain\Mail\MailSuppression;
+use DaemsModule\Communications\Domain\Mail\SuppressionReason;
 use DaemsModule\Communications\Domain\Settings\TenantCommunicationSettings;
 
 /**
@@ -42,6 +50,9 @@ final class SettingsController
         private readonly GetCommunicationSettings $getSettings,
         private readonly SaveCommunicationSettings $saveSettings,
         private readonly SendSmtpTestEmail $sendTest,
+        private readonly ListSuppressions $listSuppressionsUseCase,
+        private readonly AddManualSuppression $addSuppressionUseCase,
+        private readonly RemoveSuppression $removeSuppressionUseCase,
     ) {
     }
 
@@ -129,6 +140,93 @@ final class SettingsController
                 'sent_at' => $output->sentAt->format(\DateTimeInterface::ATOM),
             ],
         ]);
+    }
+
+    // -----------------------------------------------------------------
+    // Wave G Task G2 — suppression endpoints (admin only).
+    //
+    //   GET    /api/v1/backstage/communications/suppressions
+    //   POST   /api/v1/backstage/communications/suppressions
+    //   DELETE /api/v1/backstage/communications/suppressions/{email}
+    //
+    // Use cases enforce admin auth and tenant scoping. The email path-param
+    // on DELETE is URL-decoded once (already done by the framework router).
+    // -----------------------------------------------------------------
+
+    public function listSuppressions(Request $request): Response
+    {
+        $acting   = $request->requireActingUser();
+        $tenantId = $this->resolveTenantId($request, $acting->activeTenant);
+
+        $output = $this->listSuppressionsUseCase->execute(
+            new ListSuppressionsInput($tenantId),
+            $acting,
+        );
+
+        return Response::json([
+            'data' => array_map(
+                fn(MailSuppression $s): array => $this->serializeSuppression($s),
+                $output->suppressions,
+            ),
+        ]);
+    }
+
+    public function addSuppression(Request $request): Response
+    {
+        $acting   = $request->requireActingUser();
+        $tenantId = $this->resolveTenantId($request, $acting->activeTenant);
+
+        $email = $this->trimmedString($request->string('email'));
+        if ($email === null) {
+            throw new \InvalidArgumentException('email is required.');
+        }
+
+        $reasonRaw = $this->trimmedString($request->string('reason'));
+        $reason = $reasonRaw !== null
+            ? (SuppressionReason::tryFrom($reasonRaw) ?? SuppressionReason::ManualBlock)
+            : SuppressionReason::ManualBlock;
+
+        $output = $this->addSuppressionUseCase->execute(
+            new AddSuppressionInput($tenantId, $email, $reason),
+            $acting,
+        );
+
+        return Response::json(['data' => ['success' => $output->success]]);
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+    public function removeSuppression(Request $request, array $params): Response
+    {
+        $acting   = $request->requireActingUser();
+        $tenantId = $this->resolveTenantId($request, $acting->activeTenant);
+
+        $email = isset($params['email']) ? rawurldecode($params['email']) : '';
+        if ($email === '') {
+            throw new \InvalidArgumentException('email path-parameter is required.');
+        }
+
+        $output = $this->removeSuppressionUseCase->execute(
+            new RemoveSuppressionInput($tenantId, $email),
+            $acting,
+        );
+
+        return Response::json(['data' => ['success' => $output->success]]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeSuppression(MailSuppression $s): array
+    {
+        return [
+            'email'              => $s->emailAddress,
+            'reason'             => $s->reason->value,
+            'suppressed_at'      => $s->suppressedAt->format(\DateTimeInterface::ATOM),
+            'smtp_response_code' => $s->smtpResponseCode,
+            'suppressed_by'      => $s->suppressedBy?->value(),
+        ];
     }
 
     /**
