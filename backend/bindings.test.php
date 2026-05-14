@@ -36,6 +36,7 @@ use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\Newsletters
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\TemplatesController;
+use DaemsModule\Communications\Infrastructure\Auth\UnsubscribeTokenSigner;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
 use DaemsModule\Communications\Infrastructure\Mailer\InMemoryMailer;
 use DaemsModule\Communications\Infrastructure\Renderer\EmailHtmlRenderer;
@@ -60,6 +61,16 @@ return static function (Container $container): void {
     $container->singleton(
         DsnEncryptor::class,
         static fn(): DsnEncryptor => new DsnEncryptor(
+            base64_encode(sodium_crypto_secretbox_keygen()),
+        ),
+    );
+
+    // UnsubscribeTokenSigner — generate a fresh deterministic key per test
+    // container so the signer can be exercised without depending on
+    // APP_ENCRYPTION_KEY env var.
+    $container->singleton(
+        UnsubscribeTokenSigner::class,
+        static fn(): UnsubscribeTokenSigner => new UnsubscribeTokenSigner(
             base64_encode(sodium_crypto_secretbox_keygen()),
         ),
     );

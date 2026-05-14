@@ -48,6 +48,7 @@ use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\OutboxContr
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\SettingsController;
 use DaemsModule\Communications\Infrastructure\Adapter\Api\Controller\TemplatesController;
 use DaemsModule\Communications\Infrastructure\Audience\SqlAudienceResolver;
+use DaemsModule\Communications\Infrastructure\Auth\UnsubscribeTokenSigner;
 use DaemsModule\Communications\Infrastructure\Crypto\DsnEncryptor;
 use DaemsModule\Communications\Infrastructure\Mailer\SymfonyMailerAdapter;
 use DaemsModule\Communications\Infrastructure\Persistence\SqlMailOutboxRepository;
@@ -77,6 +78,23 @@ return static function (Container $container): void {
                 );
             }
             return new DsnEncryptor($key);
+        },
+    );
+
+    // UnsubscribeTokenSigner — HMAC over (user, tenant, category, expiry).
+    // Shares APP_ENCRYPTION_KEY with DsnEncryptor; the signer derives a
+    // per-purpose key via sodium_crypto_generichash so the HMAC key cannot be
+    // reused to forge anything else if it leaks.
+    $container->singleton(
+        UnsubscribeTokenSigner::class,
+        static function (): UnsubscribeTokenSigner {
+            $key = $_ENV['APP_ENCRYPTION_KEY'] ?? getenv('APP_ENCRYPTION_KEY') ?: '';
+            if (!is_string($key) || $key === '') {
+                throw new \RuntimeException(
+                    'APP_ENCRYPTION_KEY env var is not set; cannot build UnsubscribeTokenSigner.',
+                );
+            }
+            return new UnsubscribeTokenSigner($key);
         },
     );
 
@@ -406,6 +424,8 @@ return static function (Container $container): void {
             $c->make(EmailHtmlRenderer::class),
             $c->make(MarkdownRenderer::class),
             $c->make(Clock::class),
+            $c->make(UnsubscribeTokenSigner::class),
+            rtrim((string) ($_ENV['APP_URL'] ?? getenv('APP_URL') ?: 'http://daems-platform.local'), '/'),
         ),
     );
 
